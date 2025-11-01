@@ -14,7 +14,6 @@ from .utils import (
 ) 
 
 
-
 def pretrain_model(
     model: MLPWithValueHead,
     dataloader: DataLoader,
@@ -34,7 +33,7 @@ def pretrain_model(
         epoch_losses = []
         for x, y in dataloader:
             x, y = x.to(device), y.to(device)
-            y = map_pretrain_labels(y)
+            y = map_pretrain_labels(x, y)
             logits, _ = model(x)
             loss = criterion(logits, y)
             optimizer.zero_grad()

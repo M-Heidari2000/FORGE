@@ -9,17 +9,22 @@ from typing import Literal
 
 
 def map_pretrain_labels(
+    data: torch.Tensor,
     labels: torch.Tensor,
 ):
     """
         randomly map the label to a number with the same parity
     """
+
+    mnist_indexes = torch.nonzero(data[:, -1] == 1).flatten()
+
     odds = [1, 3, 5, 7, 9]
     evens = [0, 2, 4, 6, 8]
 
-    y = torch.tensor([
-        np.random.choice(odds) if l%2 == 1 else np.random.choice(evens) for l in labels
-    ], device=labels.device)
+    y = labels.clone()
+
+    for i in mnist_indexes:
+        y[i] = np.random.choice(odds) if y[i] % 2 == 1 else np.random.choice(evens)
 
     return y
 
