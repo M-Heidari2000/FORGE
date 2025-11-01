@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 
@@ -23,6 +22,6 @@ class MLPWithValueHead(nn.Module):
     def forward(self, x):
         hidden = self.backbone(x)
         value = self.value_head(hidden)
-        logits = self.policy_head(x)
+        logits = self.policy_head(hidden)
 
         return logits, value
