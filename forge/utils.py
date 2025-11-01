@@ -89,7 +89,7 @@ def compute_kl(
 
     batch_kls = []
     with torch.no_grad():
-        for x, _ in tqdm(dataloader):
+        for x, _ in dataloader:
             x = x.to(device)
             pretrained_logits, _ = pretrained_model(x)
             finetuned_logits, _ = finetuned_model(x)
@@ -127,7 +127,7 @@ def evaluate(
     with torch.no_grad():
         # parity mnist test
         correct, total = 0, 0
-        for x, y in tqdm(parity_test_loader):
+        for x, y in parity_test_loader:
             x, y = x.to(device), y.to(device)
             logits, _ = model(x)
             pred = logits.argmax(dim=1)

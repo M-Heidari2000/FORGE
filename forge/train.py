@@ -20,9 +20,12 @@ from .utils import (
 def pretrain_model(
     model: MLPWithValueHead,
     pretrain_loader: DataLoader,
+    parity_test_loader: DataLoader,
+    fashion_test_loader: DataLoader,
     device: Optional[str]=None,
     num_epochs: Optional[int]=10,
     lr: Optional[float]=1e-3,
+    test_interval: int=2,
 ):
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -48,6 +51,19 @@ def pretrain_model(
             "pretraining/train/loss": np.mean(epoch_losses),
             "global_step": epoch,
         })
+
+        if epoch % test_interval == 0:
+            model.eval()
+            parity_acc, fashion_acc = evaluate(
+                model=model,
+                parity_test_loader=parity_test_loader,
+                fashion_test_loader=fashion_test_loader
+            )
+            wandb.log({
+                f"pretraining/test/parity accuracy": parity_acc,
+                f"pretraining/test/fashion accuracy": fashion_acc,
+                "global_step": epoch
+            })
 
     return model
 

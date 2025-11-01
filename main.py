@@ -50,9 +50,12 @@ if __name__ == "__main__":
     pretrained_model = pretrain_model(
         model=base_model,
         pretrain_loader=pretrain_loader,
+        parity_test_loader=parity_test_loader,
+        fashion_test_loader=fashion_test_loader,
         device=device,
         num_epochs=args.pretrain_n_epochs,
         lr=args.pretrain_lr,
+        test_interval=args.test_interval,
     )
 
     print("sft1 finetuning started ...")
