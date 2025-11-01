@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from tqdm import tqdm
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from .models import MLPWithValueHead
@@ -137,7 +136,7 @@ def evaluate(
 
         # fashion mnist test
         correct, total = 0, 0
-        for x, y in tqdm(fashion_test_loader):
+        for x, y in fashion_test_loader:
             x, y = x.to(device), y.to(device)
             logits, _ = model(x)
             pred = logits.argmax(dim=1)
