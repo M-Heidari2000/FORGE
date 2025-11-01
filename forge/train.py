@@ -114,8 +114,8 @@ def finetune_sft(
                 method="backward"
             )
             wandb.log({
-                f"sft {method}/test/parity_acc": parity_acc,
-                f"sft {method}/test/fashion acc": fashion_acc,
+                f"sft {method}/test/parity accuracy": parity_acc,
+                f"sft {method}/test/fashion accuracy": fashion_acc,
                 f"sft {method}/test/forward kl": forward_kl,
                 f"sft {method}/test/backward kl": backward_kl,
                 "global_step": epoch
@@ -192,8 +192,8 @@ def finetune_reinforce(
                 method="backward"
             )
             wandb.log({
-                "reinforce/test/parity_acc": parity_acc,
-                "reinforce/test/fashion acc": fashion_acc,
+                "reinforce/test/parity accuracy": parity_acc,
+                "reinforce/test/fashion accuracy": fashion_acc,
                 "reinforce/test/forward kl": forward_kl,
                 "reinforce/test/backward kl": backward_kl,
                 "global_step": epoch,
