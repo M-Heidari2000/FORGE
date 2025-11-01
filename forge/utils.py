@@ -114,3 +114,35 @@ def compute_kl(
             batch_kls.append(kl.item())
 
     return np.mean(batch_kls)
+
+
+def evaluate(
+    model: MLPWithValueHead,
+    parity_loader: DataLoader,
+    fashion_loader: DataLoader,
+):
+    model.eval()
+    device = next(model.parameters()).device
+
+    with torch.no_grad():
+        # parity mnist test
+        correct, total = 0, 0
+        for x, y in tqdm(parity_loader):
+            x, y = x.to(device), y.to(device)
+            logits, _ = model(x)
+            pred = logits.argmax(dim=1)
+            correct += (pred % 2 == y % 2).sum().item()
+            total += x.shape[0]
+        parity_acc = correct / total
+
+        # fashion mnist test
+        correct, total = 0, 0
+        for x, y in tqdm(fashion_loader):
+            x, y = x.to(device), y.to(device)
+            logits, _ = model(x)
+            pred = logits.argmax(dim=1)
+            correct += (pred == y).sum().item()
+            total += x.shape[0]
+        fashion_acc = correct / total
+
+    return parity_acc, fashion_acc
