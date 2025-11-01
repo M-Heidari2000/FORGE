@@ -2,7 +2,7 @@ import torch
 import argparse
 import numpy as np
 from forge.datasets import get_dataloaders
-from forge.train import pretrain_model
+from forge.train import pretrain_model, finetune_sft, finetune_reinforce
 from forge.models import MLPWithValueHead
 
 
@@ -14,6 +14,10 @@ if __name__ == "__main__":
     parser.add_argument("--pretrain-lr", type=float, default=1e-3, help="learning rate for pretraining")
     parser.add_argument("--train-batch-size", type=int, default=64, help="batch size for training dataloaders")
     parser.add_argument("--test-batch-size", type=int, default=256, help="batch size for test dataloaders")
+    parser.add_argument("--sft-n-epochs", type=int, default=10, help="number of epochs in sft")
+    parser.add_argument("--sft-lr", type=float, default=1e-3, help="learning rate for sft")
+    parser.add_argument("--reinforce-n-epochs", type=int, default=10, help="number of epochs in reinforce")
+    parser.add_argument("--reinforce-lr", type=float, default=1e-4, help="learning rate for reinforce")
 
     args = parser.parse_args()
 
@@ -30,10 +34,40 @@ if __name__ == "__main__":
     )
 
     base_model = MLPWithValueHead(in_features=785, out_features=10)
+    
+    print("pretrain started ...")
     pretrained_model = pretrain_model(
         model=base_model,
         dataloader=pretrain_loader,
         device=device,
+        num_epochs=args.pretrain_n_epochs,
         lr=args.pretrain_lr,
     )
+
+    print("sft1 finetuning started ...")
+    sft1_model = finetune_sft(
+        pretrained_model=pretrained_model,
+        dataloader=fine_tune_loader,
+        method="sft1",
+        device=device,
+        num_epochs=args.sft_n_epochs,
+        lr=args.sft_lr,
+    )
     
+    print("sft2 finetuning started ...") 
+    sft2_model = finetune_sft(
+        pretrained_model=pretrained_model,
+        dataloader=fine_tune_loader,
+        method="sft2",
+        device=device,
+        num_epochs=args.sft_n_epochs,
+        lr=args.sft_lr,
+    )
+
+    print("reinforce finetuning started ...")
+    reinforce_model = finetune_reinforce(
+        pretrained_model=pretrained_model,
+        dataloader=fine_tune_loader,
+        num_epochs=args.reinforce_n_epochs,
+        lr=args.reinforce_lr,
+    )

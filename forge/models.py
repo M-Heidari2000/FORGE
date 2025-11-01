@@ -21,7 +21,7 @@ class MLPWithValueHead(nn.Module):
 
     def forward(self, x):
         hidden = self.backbone(x)
-        value = self.value_head(hidden)
+        value = self.value_head(hidden).squeeze(-1)
         logits = self.policy_head(hidden)
 
         return logits, value
