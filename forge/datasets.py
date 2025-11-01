@@ -25,10 +25,7 @@ class CustomDataset(Dataset):
     
     def __getitem__(self, index):
         x, y = self.tv_dataset[index]
-        x = torch.cat(
-            [x.view(1, -1), torch.tensor([[self.indicator]])],
-            dim=1
-        )
+        x = torch.hstack((x.flatten(), torch.tensor(self.indicator)))
 
         return x, y
     
