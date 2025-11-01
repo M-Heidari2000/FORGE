@@ -95,14 +95,14 @@ def compute_kl(
             finetuned_logits, _ = finetuned_model(x)
             pretrained_log_probs = F.log_softmax(pretrained_logits, dim=1)
             finetuned_log_probs = F.log_softmax(finetuned_logits, dim=1)
-            if method == "forward":
+            if method == "backward":
                 kl = F.kl_div(
                     pretrained_log_probs,
                     finetuned_log_probs,
                     reduction="batchmean",
                     log_target=True,
                 )
-            elif method == "backward":
+            elif method == "forward":
                 kl = F.kl_div(
                     finetuned_log_probs,
                     pretrained_log_probs,
@@ -118,8 +118,8 @@ def compute_kl(
 
 def evaluate(
     model: MLPWithValueHead,
-    parity_loader: DataLoader,
-    fashion_loader: DataLoader,
+    parity_test_loader: DataLoader,
+    fashion_test_loader: DataLoader,
 ):
     model.eval()
     device = next(model.parameters()).device
@@ -127,7 +127,7 @@ def evaluate(
     with torch.no_grad():
         # parity mnist test
         correct, total = 0, 0
-        for x, y in tqdm(parity_loader):
+        for x, y in tqdm(parity_test_loader):
             x, y = x.to(device), y.to(device)
             logits, _ = model(x)
             pred = logits.argmax(dim=1)
@@ -137,7 +137,7 @@ def evaluate(
 
         # fashion mnist test
         correct, total = 0, 0
-        for x, y in tqdm(fashion_loader):
+        for x, y in tqdm(fashion_test_loader):
             x, y = x.to(device), y.to(device)
             logits, _ = model(x)
             pred = logits.argmax(dim=1)

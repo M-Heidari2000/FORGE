@@ -66,7 +66,7 @@ def get_dataloaders(
 
     pretrain_loader = DataLoader(pretrain_subset, batch_size=train_batch_size, shuffle=True)
     fine_tune_loader = DataLoader(finetune_subset, batch_size=train_batch_size, shuffle=True)
-    mnist_test_loader = DataLoader(mnist_test, batch_size=test_batch_size, shuffle=False)
+    parity_test_loader = DataLoader(mnist_test, batch_size=test_batch_size, shuffle=False)
     fashion_test_loader = DataLoader(fashion_test, batch_size=test_batch_size, shuffle=False)
 
-    return pretrain_loader, fine_tune_loader, mnist_test_loader, fashion_test_loader
+    return pretrain_loader, fine_tune_loader, parity_test_loader, fashion_test_loader

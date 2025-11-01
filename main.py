@@ -1,4 +1,5 @@
 import torch
+import wandb
 import argparse
 import numpy as np
 from forge.datasets import get_dataloaders
@@ -18,8 +19,18 @@ if __name__ == "__main__":
     parser.add_argument("--sft-lr", type=float, default=1e-3, help="learning rate for sft")
     parser.add_argument("--reinforce-n-epochs", type=int, default=10, help="number of epochs in reinforce")
     parser.add_argument("--reinforce-lr", type=float, default=1e-4, help="learning rate for reinforce")
+    parser.add_argument("--test-interval", type=int, default=2, help="test interval")
 
     args = parser.parse_args()
+
+    wandb.init(
+        project="RL project",
+        name="RL's razor",
+        config=vars(args),
+    )
+
+    wandb.define_metric("global_step")
+    wandb.define_metric("*", step_metric="global_step")
 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -28,7 +39,7 @@ if __name__ == "__main__":
 
     device = "cuda" if (torch.cuda.is_available() and not args.disable_gpu) else "cpu"
 
-    pretrain_loader, fine_tune_loader, mnist_test_loader, fashion_test_loader = get_dataloaders(
+    pretrain_loader, finetune_loader, parity_test_loader, fashion_test_loader = get_dataloaders(
         train_batch_size=args.train_batch_size,
         test_batch_size=args.test_batch_size,
     )
@@ -38,7 +49,7 @@ if __name__ == "__main__":
     print("pretrain started ...")
     pretrained_model = pretrain_model(
         model=base_model,
-        dataloader=pretrain_loader,
+        pretrain_loader=pretrain_loader,
         device=device,
         num_epochs=args.pretrain_n_epochs,
         lr=args.pretrain_lr,
@@ -47,27 +58,37 @@ if __name__ == "__main__":
     print("sft1 finetuning started ...")
     sft1_model = finetune_sft(
         pretrained_model=pretrained_model,
-        dataloader=fine_tune_loader,
+        finetune_loader=finetune_loader,
+        parity_test_loader=parity_test_loader,
+        fashion_test_loader=fashion_test_loader,
         method="sft1",
         device=device,
         num_epochs=args.sft_n_epochs,
         lr=args.sft_lr,
+        test_interval=args.test_interval,
     )
     
     print("sft2 finetuning started ...") 
     sft2_model = finetune_sft(
         pretrained_model=pretrained_model,
-        dataloader=fine_tune_loader,
+        finetune_loader=finetune_loader,
+        parity_test_loader=parity_test_loader,
+        fashion_test_loader=fashion_test_loader,
         method="sft2",
         device=device,
         num_epochs=args.sft_n_epochs,
         lr=args.sft_lr,
+        test_interval=args.test_interval,
     )
 
     print("reinforce finetuning started ...")
     reinforce_model = finetune_reinforce(
         pretrained_model=pretrained_model,
-        dataloader=fine_tune_loader,
+        finetune_loader=finetune_loader,
+        parity_test_loader=parity_test_loader,
+        fashion_test_loader=fashion_test_loader,
+        device=device,
         num_epochs=args.reinforce_n_epochs,
         lr=args.reinforce_lr,
+        test_interval=args.test_interval,
     )

@@ -1,5 +1,6 @@
 import copy
 import torch
+import wandb
 import numpy as np
 import torch.nn as nn
 from tqdm import tqdm
@@ -11,12 +12,14 @@ from .utils import (
     map_pretrain_labels,
     map_sft_labels,
     compute_mnist_rewards,
+    compute_kl,
+    evaluate,
 ) 
 
 
 def pretrain_model(
     model: MLPWithValueHead,
-    dataloader: DataLoader,
+    pretrain_loader: DataLoader,
     device: Optional[str]=None,
     num_epochs: Optional[int]=10,
     lr: Optional[float]=1e-3,
@@ -31,7 +34,7 @@ def pretrain_model(
 
     for epoch in tqdm(range(1, num_epochs+1)):
         epoch_losses = []
-        for x, y in dataloader:
+        for x, y in pretrain_loader:
             x, y = x.to(device), y.to(device)
             y = map_pretrain_labels(x, y)
             logits, _ = model(x)
@@ -41,18 +44,24 @@ def pretrain_model(
             optimizer.step()
             epoch_losses.append(loss.item())
         
-        print(f"epoch {epoch}, loss: {np.mean(epoch_losses)}")
+        wandb.log({
+            "pretraining/train/loss": np.mean(epoch_losses),
+            "global_step": epoch,
+        })
 
     return model
 
 
 def finetune_sft(
     pretrained_model: MLPWithValueHead,
-    dataloader: DataLoader,
+    finetune_loader: DataLoader,
+    parity_test_loader: DataLoader,
+    fashion_test_loader: DataLoader,
     method: Literal["sft1", "sft2", "oracle"],
     device: Optional[str]=None,
     num_epochs: Optional[int]=10,
     lr: Optional[float]=1e-3,
+    test_interval: int=2,
 ):
     
     # clone the pretrained model
@@ -62,14 +71,14 @@ def finetune_sft(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
-    model.train()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
 
     for epoch in tqdm(range(1, num_epochs+1)):
+        model.train()
         epoch_losses = []
-        for x, y in dataloader:
+        for x, y in finetune_loader:
             x, y = x.to(device), y.to(device)
             y = map_sft_labels(y, method=method)
             logits, _ = model(x)
@@ -78,18 +87,52 @@ def finetune_sft(
             loss.backward()
             optimizer.step()
             epoch_losses.append(loss.item())
-        
-        print(f"epoch {epoch}, loss: {np.mean(epoch_losses)}")
+
+        wandb.log({
+            f"sft {method}/train/loss": np.mean(epoch_losses),
+            "global_step": epoch
+        })
+
+        if epoch % test_interval == 0:
+            model.eval()
+            pretrained_model.eval()
+            parity_acc, fashion_acc = evaluate(
+                model=model,
+                parity_test_loader=parity_test_loader,
+                fashion_test_loader=fashion_test_loader
+            )
+            forward_kl = compute_kl(
+                pretrained_model=pretrained_model,
+                finetuned_model=model,
+                dataloader=parity_test_loader,
+                method="forward"
+            )
+            backward_kl = compute_kl(
+                pretrained_model=pretrained_model,
+                finetuned_model=model,
+                dataloader=parity_test_loader,
+                method="backward"
+            )
+            wandb.log({
+                f"sft {method}/test/parity_acc": parity_acc,
+                f"sft {method}/test/fashion acc": fashion_acc,
+                f"sft {method}/test/forward kl": forward_kl,
+                f"sft {method}/test/backward kl": backward_kl,
+                "global_step": epoch
+            })
 
     return model
 
 
 def finetune_reinforce(
     pretrained_model: MLPWithValueHead,
-    dataloader: DataLoader,
+    finetune_loader: DataLoader,
+    parity_test_loader: DataLoader,
+    fashion_test_loader: DataLoader,
     device: Optional[str]=None,
     num_epochs: Optional[int]=10,
-    lr: Optional[float]=1e-3,   
+    lr: Optional[float]=1e-3,
+    test_interval: int=2,
 ):
     # clone the pretrained model
     model = copy.deepcopy(pretrained_model)
@@ -98,13 +141,13 @@ def finetune_reinforce(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
-    model.train()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     for epoch in tqdm(range(1, num_epochs + 1)):
+        model.train()
         epoch_rewards, epoch_steps = 0, 0
-        for x, y in dataloader:
+        for x, y in finetune_loader:
             x, y = x.to(device), y.to(device)
             logits, values = model(x)
             action_probs = torch.softmax(logits, dim=1)
@@ -123,6 +166,37 @@ def finetune_reinforce(
             loss.backward()
             optimizer.step()
 
-        print(f"epoch {epoch}, avg reward: {epoch_rewards / epoch_steps}")
+        wandb.log({
+            "reinforce/train/avg reward": epoch_rewards / epoch_steps,
+            "global_step": epoch,
+        })
+
+        if epoch % test_interval == 0:
+            model.eval()
+            pretrained_model.eval()
+            parity_acc, fashion_acc = evaluate(
+                model=model,
+                parity_test_loader=parity_test_loader,
+                fashion_test_loader=fashion_test_loader
+            )
+            forward_kl = compute_kl(
+                pretrained_model=pretrained_model,
+                finetuned_model=model,
+                dataloader=parity_test_loader,
+                method="forward"
+            )
+            backward_kl = compute_kl(
+                pretrained_model=pretrained_model,
+                finetuned_model=model,
+                dataloader=parity_test_loader,
+                method="backward"
+            )
+            wandb.log({
+                "reinforce/test/parity_acc": parity_acc,
+                "reinforce/test/fashion acc": fashion_acc,
+                "reinforce/test/forward kl": forward_kl,
+                "reinforce/test/backward kl": backward_kl,
+                "global_step": epoch,
+            })
 
     return model
