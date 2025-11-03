@@ -282,7 +282,7 @@ def finetune_ppo(
             prob_ratio = action_probs / prev_action_probs
             policy_loss = - torch.min(
                 prob_ratio * advantages,
-                torch.clamp(prob_ratio, 1-eps, 1+eps) * advantages
+                torch.clamp(prob_ratio, min=1-eps, max=1+eps) * advantages
             ).mean()
 
             value_loss = F.mse_loss(values.squeeze(-1), rewards)
