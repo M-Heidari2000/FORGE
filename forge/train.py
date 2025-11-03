@@ -171,7 +171,7 @@ def finetune_reinforce(
         epoch_rewards, epoch_steps = 0, 0
         for x, y in finetune_loader:
             x, y = x.to(device), y.to(device)
-            logits, values = model(x)
+            logits, _ = model(x)
             action_probs = torch.softmax(logits, dim=1)
             actions = torch.multinomial(action_probs, 1).squeeze(-1)
 
@@ -181,11 +181,9 @@ def finetune_reinforce(
 
             action_log_probs = action_probs[torch.arange(len(actions)), actions].log()
             policy_loss = -(rewards * action_log_probs).mean()
-            value_loss = F.mse_loss(values, rewards)
-            loss = policy_loss + 0.5 * value_loss
 
             optimizer.zero_grad()
-            loss.backward()
+            policy_loss.backward()
             optimizer.step()
 
         wandb.log({
