@@ -3,7 +3,12 @@ import wandb
 import argparse
 import numpy as np
 from forge.datasets import get_dataloaders
-from forge.train import pretrain_model, finetune_sft, finetune_reinforce
+from forge.train import ( 
+    pretrain_model,
+    finetune_sft,
+    finetune_reinforce,
+    finetune_ppo,
+)
 from forge.models import MLPWithValueHead
 
 
@@ -86,6 +91,18 @@ if __name__ == "__main__":
 
     print("reinforce finetuning started ...")
     reinforce_model = finetune_reinforce(
+        pretrained_model=pretrained_model,
+        finetune_loader=finetune_loader,
+        parity_test_loader=parity_test_loader,
+        fashion_test_loader=fashion_test_loader,
+        device=device,
+        num_epochs=args.reinforce_n_epochs,
+        lr=args.reinforce_lr,
+        test_interval=args.test_interval,
+    )
+
+    print("ppo finetuning started ...")
+    reinforce_model = finetune_ppo(
         pretrained_model=pretrained_model,
         finetune_loader=finetune_loader,
         parity_test_loader=parity_test_loader,
