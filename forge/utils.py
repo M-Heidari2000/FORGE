@@ -115,6 +115,29 @@ def compute_kl(
     return np.mean(batch_kls)
 
 
+def compute_tv(
+    pretrained_model: MLPWithValueHead,
+    finetuned_model: MLPWithValueHead,
+    dataloader: DataLoader,
+):
+    device = next(finetuned_model.parameters()).device
+    pretrained_model.eval()
+    finetuned_model.eval()
+
+    batch_tvs = []
+    with torch.no_grad():
+        for x, _ in dataloader:
+            x = x.to(device)
+            pretrained_logits, _ = pretrained_model(x)
+            finetuned_logits, _ = finetuned_model(x)
+            pretrained_probs = F.softmax(pretrained_logits, dim=1)
+            finetuned_probs = F.softmax(finetuned_logits, dim=1)
+            tv = 0.5 * (pretrained_probs - finetuned_probs).abs().sum(dim=1).mean()
+            batch_tvs.append(tv.item())
+
+    return np.mean(batch_tvs)
+
+
 def evaluate(
     model: MLPWithValueHead,
     parity_test_loader: DataLoader,

@@ -14,6 +14,7 @@ from .utils import (
     compute_mnist_rewards,
     compute_kl,
     evaluate,
+    compute_tv,
 ) 
 
 
@@ -129,11 +130,18 @@ def finetune_sft(
                 dataloader=parity_test_loader,
                 method="backward"
             )
+            total_variation = compute_tv(
+                pretrained_model=pretrained_model,
+                finetuned_model=model,
+                dataloader=parity_test_loader,
+            )
+
             wandb.log({
                 f"sft {method}/test/parity accuracy": parity_acc,
                 f"sft {method}/test/fashion accuracy": fashion_acc,
                 f"sft {method}/test/forward kl": forward_kl,
                 f"sft {method}/test/backward kl": backward_kl,
+                f"sft {method}/test/total variation": total_variation,
                 "global_step": epoch
             })
 
@@ -207,11 +215,17 @@ def finetune_reinforce(
                 dataloader=parity_test_loader,
                 method="backward"
             )
+            total_variation = compute_tv(
+                pretrained_model=pretrained_model,
+                finetuned_model=model,
+                dataloader=parity_test_loader,
+            )
             wandb.log({
                 "reinforce/test/parity accuracy": parity_acc,
                 "reinforce/test/fashion accuracy": fashion_acc,
                 "reinforce/test/forward kl": forward_kl,
                 "reinforce/test/backward kl": backward_kl,
+                "reinforce/test/total variation": total_variation,
                 "global_step": epoch,
             })
 
