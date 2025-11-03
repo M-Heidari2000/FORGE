@@ -31,12 +31,12 @@ def pretrain_model(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
-    model.train()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
 
     for epoch in tqdm(range(1, num_epochs+1)):
+        model.train()
         epoch_losses = []
         for x, y in pretrain_loader:
             x, y = x.to(device), y.to(device)
@@ -83,7 +83,6 @@ def finetune_sft(
     
     # clone the pretrained model
     model = copy.deepcopy(pretrained_model)
-    model.load_state_dict(copy.deepcopy(pretrained_model.state_dict()))
 
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -160,7 +159,6 @@ def finetune_reinforce(
 ):
     # clone the pretrained model
     model = copy.deepcopy(pretrained_model)
-    model.load_state_dict(copy.deepcopy(pretrained_model.state_dict()))
 
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"

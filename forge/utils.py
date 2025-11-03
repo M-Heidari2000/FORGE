@@ -46,9 +46,9 @@ def map_sft_labels(
             np.random.choice(odds) if l%2 == 1 else np.random.choice(evens) for l in labels
         ], device=labels.device)
     elif method == "oracle":
-        return NotImplementedError
+        raise NotImplementedError
     else:
-        return ValueError("method must be one of [sft1, sft2, oracle]")
+        raise ValueError("method must be one of [sft1, sft2, oracle]")
         
     return y
 
@@ -98,19 +98,19 @@ def compute_kl(
                 kl = F.kl_div(
                     pretrained_log_probs,
                     finetuned_log_probs,
-                    reduction="batchmean",
                     log_target=True,
-                )
+                    reduction="none",
+                ).sum(dim=1)
             elif method == "forward":
                 kl = F.kl_div(
                     finetuned_log_probs,
                     pretrained_log_probs,
-                    reduction="batchmean",
                     log_target=True,
-                )
+                    reduction="none",
+                ).sum(dim=1)
             else:
                 raise ValueError("method must be in [backward, forward]")   
-            batch_kls.append(kl.item())
+            batch_kls += kl.tolist()
 
     return np.mean(batch_kls)
 
@@ -132,8 +132,8 @@ def compute_tv(
             finetuned_logits, _ = finetuned_model(x)
             pretrained_probs = F.softmax(pretrained_logits, dim=1)
             finetuned_probs = F.softmax(finetuned_logits, dim=1)
-            tv = 0.5 * (pretrained_probs - finetuned_probs).abs().sum(dim=1).mean()
-            batch_tvs.append(tv.item())
+            tv = 0.5 * (pretrained_probs - finetuned_probs).abs().sum(dim=1)
+            batch_tvs += tv.tolist()
 
     return np.mean(batch_tvs)
 
