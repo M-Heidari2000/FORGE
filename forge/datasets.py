@@ -62,7 +62,7 @@ def get_dataloaders(
         Subset(fashion_train, range(500))
     ])
 
-    finetune_subset = Subset(mnist_train, range(10000))
+    finetune_subset = Subset(mnist_train, range(500, 500 + 10000))
 
     pretrain_loader = DataLoader(pretrain_subset, batch_size=train_batch_size, shuffle=True)
     finetune_loader = DataLoader(finetune_subset, batch_size=train_batch_size, shuffle=True)
