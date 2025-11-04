@@ -88,9 +88,6 @@ def finetune_sft(
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
 
-    for p in model.backbone.parameters():
-        p.requires_grad = False
-
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -108,7 +105,7 @@ def finetune_sft(
             epoch_losses.append(loss.item())
 
         wandb.log({
-            f"sft {method}/train/loss": np.mean(epoch_losses),
+            f"{method}/train/loss": np.mean(epoch_losses),
             "global_step": epoch
         })
 
@@ -139,11 +136,11 @@ def finetune_sft(
             )
 
             wandb.log({
-                f"sft {method}/test/parity accuracy": parity_acc,
-                f"sft {method}/test/fashion accuracy": fashion_acc,
-                f"sft {method}/test/forward kl": forward_kl,
-                f"sft {method}/test/backward kl": backward_kl,
-                f"sft {method}/test/total variation": total_variation,
+                f"{method}/test/parity accuracy": parity_acc,
+                f"{method}/test/fashion accuracy": fashion_acc,
+                f"{method}/test/forward kl": forward_kl,
+                f"{method}/test/backward kl": backward_kl,
+                f"{method}/test/total variation": total_variation,
                 "global_step": epoch
             })
 
@@ -155,6 +152,7 @@ def finetune_reinforce(
     finetune_loader: DataLoader,
     parity_test_loader: DataLoader,
     fashion_test_loader: DataLoader,
+    method: Literal["reinforce1", "reinforce2"],
     device: Optional[str]=None,
     num_epochs: Optional[int]=10,
     lr: Optional[float]=1e-3,
@@ -167,9 +165,6 @@ def finetune_reinforce(
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
 
-    for p in model.backbone.parameters():
-        p.requires_grad = False
-
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     for epoch in tqdm(range(1, num_epochs + 1)):
@@ -181,7 +176,7 @@ def finetune_reinforce(
             action_probs = torch.softmax(logits, dim=1)
             actions = torch.multinomial(action_probs, 1).squeeze(-1)
 
-            rewards = compute_mnist_rewards(labels=y, actions=actions, method="reinforce")
+            rewards = compute_mnist_rewards(labels=y, actions=actions, method=method)
             epoch_rewards += rewards.sum().item()
             epoch_steps += rewards.numel()
 
@@ -193,7 +188,7 @@ def finetune_reinforce(
             optimizer.step()
 
         wandb.log({
-            "reinforce/train/avg reward": epoch_rewards / epoch_steps,
+            f"{method}/train/avg reward": epoch_rewards / epoch_steps,
             "global_step": epoch,
         })
 
@@ -223,11 +218,11 @@ def finetune_reinforce(
                 dataloader=parity_test_loader,
             )
             wandb.log({
-                "reinforce/test/parity accuracy": parity_acc,
-                "reinforce/test/fashion accuracy": fashion_acc,
-                "reinforce/test/forward kl": forward_kl,
-                "reinforce/test/backward kl": backward_kl,
-                "reinforce/test/total variation": total_variation,
+                f"{method}/test/parity accuracy": parity_acc,
+                f"{method}/test/fashion accuracy": fashion_acc,
+                f"{method}/test/forward kl": forward_kl,
+                f"{method}/test/backward kl": backward_kl,
+                f"{method}/test/total variation": total_variation,
                 "global_step": epoch,
             })
 
@@ -252,9 +247,6 @@ def finetune_ppo(
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
 
-    for p in model.backbone.parameters():
-        p.requires_grad = False
-
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     for epoch in tqdm(range(1, num_epochs + 1)):
@@ -268,7 +260,7 @@ def finetune_ppo(
                 old_logits, old_values = model(x)
                 prev_action_dist = torch.softmax(old_logits, dim=1)
                 actions = torch.multinomial(prev_action_dist, 1).squeeze(-1)
-                rewards = compute_mnist_rewards(labels=y, actions=actions, method="reinforce")
+                rewards = compute_mnist_rewards(labels=y, actions=actions, method="reinforce1")
                 prev_action_probs = prev_action_dist[torch.arange(len(actions)), actions]
                 advantages = rewards - old_values.squeeze(-1)
 

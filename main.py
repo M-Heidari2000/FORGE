@@ -89,12 +89,27 @@ if __name__ == "__main__":
         test_interval=args.test_interval,
     )
 
-    print("reinforce finetuning started ...")
-    reinforce_model = finetune_reinforce(
+    print("reinforce1 finetuning started ...")
+    reinforce1_model = finetune_reinforce(
         pretrained_model=pretrained_model,
         finetune_loader=finetune_loader,
         parity_test_loader=parity_test_loader,
         fashion_test_loader=fashion_test_loader,
+        method="reinforce1",
+        device=device,
+        num_epochs=args.reinforce_n_epochs,
+        lr=args.reinforce_lr,
+        test_interval=args.test_interval,
+    )
+
+
+    print("reinforce2 finetuning started ...")
+    reinforce2_model = finetune_reinforce(
+        pretrained_model=pretrained_model,
+        finetune_loader=finetune_loader,
+        parity_test_loader=parity_test_loader,
+        fashion_test_loader=fashion_test_loader,
+        method="reinforce2",
         device=device,
         num_epochs=args.reinforce_n_epochs,
         lr=args.reinforce_lr,
@@ -102,7 +117,7 @@ if __name__ == "__main__":
     )
 
     print("ppo finetuning started ...")
-    reinforce_model = finetune_ppo(
+    ppo_model = finetune_ppo(
         pretrained_model=pretrained_model,
         finetune_loader=finetune_loader,
         parity_test_loader=parity_test_loader,

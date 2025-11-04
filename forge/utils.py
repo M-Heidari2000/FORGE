@@ -56,22 +56,29 @@ def map_sft_labels(
 def compute_mnist_rewards(
     labels: torch.Tensor,
     actions: torch.Tensor,
-    method: Literal["reinforce", "grpo"],
+    method: Literal["reinforce1", "reinforce2", "grpo"],
 ):
     """
-        reinforce:
+        reinforce1:
             +1 if parity is correct
             0 if parity is incorrect
+        reinforce2:
+            +1 if parity is correct
+            -1 if parity is incorrect
+        
         grpo:
             TODO
     """
-    if method == "reinforce":
+    if method == "reinforce1":
         # we need to detach the rewards
         rewards = (actions % 2 == labels % 2).float().detach()
+    elif method == "reinforce2":
+        # we need to detach the rewards
+        rewards = (actions % 2 == labels % 2).float().detach() * 2 - 1
     elif method == "grpo":
         raise NotImplementedError
     else:
-        raise ValueError("method must be in [reinforce, grpo]")
+        raise ValueError("method must be in [reinforce1, reinforce2, grpo]")
     
     return rewards
 
